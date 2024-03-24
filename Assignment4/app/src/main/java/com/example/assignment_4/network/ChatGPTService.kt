@@ -5,10 +5,10 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.Response
 
-interface OpenAIService {
+interface ChatGPTService {
     @POST("v1/chat/completions")
-    @Headers("Content-Type: application/json", "Authorization: Bearer <Enter your keys here>")//
-    suspend fun createCompletion(@Body body: OpenAIRequest): Response<OpenAIResponse>
+    @Headers("Content-Type: application/json", "Authorization: Bearer <Enter your keys here>")//Enter your GPT  Keys here
+    suspend fun generateChatResponse(@Body body: ChatGPTRequest): Response<ChatGPTResponse>
 }
 
 data class Message(
@@ -16,12 +16,12 @@ data class Message(
     val content: String
 )
 
-data class OpenAIRequest(
+data class ChatGPTRequest(
     val model: String,
     val messages: List<Message>
 )
 
-data class OpenAIResponse(
+data class ChatGPTResponse(
     val id: String,
     val created: Int,
     val model: String,

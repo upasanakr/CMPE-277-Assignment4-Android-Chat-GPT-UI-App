@@ -24,8 +24,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.assignment_4.ui.theme.Assignment4Theme
 import kotlinx.coroutines.launch
-import com.example.assignment_4.network.OpenAIService
-import com.example.assignment_4.network.OpenAIRequest
+import com.example.assignment_4.network.ChatGPTService
+import com.example.assignment_4.network.ChatGPTRequest
 import com.example.assignment_4.network.Message
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -45,13 +45,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-fun createRetrofitService(): OpenAIService {
+fun initializeChatGPTApiService(): ChatGPTService {
     val retrofit = Retrofit.Builder()
         .baseUrl("https://api.openai.com/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    return retrofit.create(OpenAIService::class.java)
+    return retrofit.create(ChatGPTService::class.java)
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,15 +68,15 @@ fun AppContent() {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(9.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             Button(
                 onClick = {
                     scope.launch {
-                        response = callOpenAI(prompt)
+                        response = fetchGPTResponse(prompt)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
@@ -95,10 +95,10 @@ fun AppContent() {
                 Text("Cancel")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(19.dp))
         Text(
             text = "Response From GPT: $response",
-            modifier = Modifier.padding(8.dp).fillMaxWidth(),
+            modifier = Modifier.padding(9.dp).fillMaxWidth(),
             color = MaterialTheme.colorScheme.onSurface
         )
 
@@ -111,9 +111,9 @@ fun AppContent() {
 }
 
 
-suspend fun callOpenAI(prompt: String): String {
-    val service = createRetrofitService()
-    val requestBody = OpenAIRequest(
+suspend fun fetchGPTResponse(prompt: String): String {
+    val chatGPTApiService = initializeChatGPTApiService()
+    val requestBody = ChatGPTRequest(
         model = "gpt-3.5-turbo",
         messages = listOf(
             Message(role = "user", content = prompt)
@@ -121,24 +121,24 @@ suspend fun callOpenAI(prompt: String): String {
     )
 
     return try {
-        val response = service.createCompletion(requestBody)
-        if (response.isSuccessful && response.body() != null) {
-            val responseBody = response.body()
-            if (responseBody != null && responseBody.choices.isNotEmpty()) {
-                val assistantMessage = responseBody.choices.first().message.content.trim()
-                if (assistantMessage.isNotEmpty()) {
-                    assistantMessage
+        val chatGPTApiResponse = chatGPTApiService.generateChatResponse(requestBody)
+        if (chatGPTApiResponse.isSuccessful && chatGPTApiResponse.body() != null) {
+            val chatGPTApiResponseBody = chatGPTApiResponse.body()
+            if (chatGPTApiResponseBody != null && chatGPTApiResponseBody.choices.isNotEmpty()) {
+                val message = chatGPTApiResponseBody.choices.first().message.content.trim()
+                if (message.isNotEmpty()) {
+                    message
                 } else {
-                    "The assistant's response was empty."
+                    "Response was empty."
                 }
             } else {
-                "Received an empty response. Response body: $responseBody"
+                "Received empty response. Response body: $chatGPTApiResponseBody"
             }
         } else {
-            "Error: ${response.errorBody()?.string()}"
+            "Error: ${chatGPTApiResponse.errorBody()?.string()}"
         }
     } catch (e: Exception) {
-        "Failed to connect to the API: ${e.localizedMessage}"
+        "Failed to connect API: ${e.localizedMessage}"
     }
 }
 
@@ -152,8 +152,6 @@ fun DefaultPreview() {
 @Composable
 fun assignment_4Theme(content: @Composable () -> Unit) {
     MaterialTheme {
-
         content()
     }
-
 }
